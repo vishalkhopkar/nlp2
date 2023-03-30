@@ -78,29 +78,34 @@ def qa_inference(model, data_loader, DEVICE):
     model.eval()
     start_logits = []
     end_logits = []
+    first_done = False
     for step, batch in enumerate(tqdm(data_loader, desc="Inference Iteration")):
+        
         with torch.no_grad():
             model_kwargs = {
                 'input_ids': batch['input_ids'].to(DEVICE, dtype=torch.long),
                 'attention_mask': batch['attention_mask'].to(DEVICE, dtype=torch.long)
-            }    
-
+            }
             # TODO 6: pass the model arguments to the model and store the output
-            outputs = model(**model_kwargs)
-            #print(outputs)
-            startlog = outputs.start_logits
-            endlog = outputs.end_logits
-
+            # output = qa_model(batch['input_ids'], attention_mask=batch['attention_mask'])
+            output = model(**model_kwargs)
+            if not first_done:
+                s = output['start_logits'].cpu().detach().numpy()
+                e = output['end_logits'].cpu().detach().numpy()
+                first_done = True
+            else:
+                s = np.concatenate((s, output['start_logits'].cpu().detach().numpy()), axis = 0)
+                e = np.concatenate((e, output['end_logits'].cpu().detach().numpy()), axis = 0)
+            #print(s.shape)
+            #print("step ", step, " ", s.shape, " ", e.shape)
             # TODO 7: Extract the start and end logits by extending `start_logits` and `end_logits`
-            start_logits.extend(startlog.cpu().numpy())
-            end_logits.extend(endlog.cpu().numpy())
-
+            
     # TODO 8: Convert the start and end logits to a numpy array (by passing them to `np.array`)
-    end_logits = np.array(end_logits)
     start_logits = np.array(start_logits)
-
+    end_logits = np.array(end_logits)
     # TODO 9: return start and end logits
-    return start_logits, end_logits
+    #print(s.shape)
+    return s, e
 
 def Extract_Write_Answers(qa_model, test_dataloader, test_raw, test_tokenized):
     #Call evaluation method

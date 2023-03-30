@@ -63,10 +63,11 @@ def Save_Pretrained_Models():
 def main_func(questions, context):
     #inputs - 1 context, multiple questions, pass each question
     #Placeholder example context and questions given for now
-    """
-    context = "The quick brown fox jumps over the lazy dog."
+    
+    '''context = "The quick brown fox jumps over the lazy dog."
     questions = ["What does the fox jump over?", "What color is the fox?"]
-    """
+    print(context)'''
+    
 
     #TODO: Fetch the actual context and questions
 
@@ -88,7 +89,7 @@ def main_func(questions, context):
     #Set config
     config = {
     'model_checkpoint': "roberta-base",
-    "max_length": 400, #ideal range 300 - 512. input seq will have question + context/paragraph
+    "max_length": 512, #ideal range 300 - 512. input seq will have question + context/paragraph
     "truncation": "only_second", #only second
     "padding": True,
     "return_overflowing_tokens": True, #Whether to include overflowing token information in the returned dictionary when true
@@ -125,20 +126,36 @@ def main_func(questions, context):
 
     #RUNNING THE PROTOTYPE
     final_answers = []
-    for question in questions:
+    contexts = [context] * len(questions)
+    eval_dataset = QADataset(questions = questions, contexts=contexts, tokenizer=tokenizer, config=config)
+
+    eval_dataloader = DataLoader(eval_dataset, batch_size=config["batch_size"])
+    print(eval_dataloader)
+
+    #eval_data = eval_dataset.data #raw data
+    eval_features = eval_dataset.tokenized_data #tokenized data
+
+
+    #print(data)
+    #inference
+    start_logits, end_logits = qa_inference(model,eval_dataloader, DEVICE)
+    print("start",start_logits)
+    print("end:",end_logits)
+
+    #post process
+    processed_output = post_processing(raw_dataset=eval_dataset, 
+    tokenized_dataset=eval_dataset.tokenized_data,
+    start_logits=start_logits,
+    end_logits=end_logits,
+    config=config)
+
+    print(processed_output)
+
+    '''for question in questions:
         answer = get_predicted_answers(qa_model= qa_model,
                                        tokenizer= tokenizer,
                                        question= question,
                                        context= context)
         
         final_answers.append(answer)
-    print(final_answers)
-        
-
-
-    
-
-
-
-
-
+    print(final_answers)'''
